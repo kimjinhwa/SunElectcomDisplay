@@ -187,7 +187,7 @@ lv_obj_t *ui____initial_actions0;
 void ui_event_Button1( lv_event_t * e) {
     lv_event_code_t event_code = lv_event_get_code(e);lv_obj_t * target = lv_event_get_target(e);
 if ( event_code == LV_EVENT_RELEASED) {
-      _ui_screen_change( &ui_SettingScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_SettingScreen_screen_init);
+      _ui_screen_change( &ui_SettingScreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 1, 10, &ui_SettingScreen_screen_init);
 }
 }
 void ui_event_btnPack1( lv_event_t * e) {
@@ -248,7 +248,7 @@ if ( event_code == LV_EVENT_CLICKED) {
 void ui_event_Button2( lv_event_t * e) {
     lv_event_code_t event_code = lv_event_get_code(e);lv_obj_t * target = lv_event_get_target(e);
 if ( event_code == LV_EVENT_RELEASED) {
-      _ui_screen_change( &ui_MainScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_MainScreen_screen_init);
+      _ui_screen_change( &ui_MainScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 1, 10, &ui_MainScreen_screen_init);
 }
 }
 void ui_event_SaveSettingButton( lv_event_t * e) {

@@ -38,7 +38,7 @@ int readSerial1Data(){
             readSerialCount++;
             if(readSerialCount>254)readSerialCount=0;
             if(readSerialCount>4){
-                if((revData[0]= 0x73) && (readSerialCount >= revData[3]+4+2) ) {
+                if((revData[0]= 0x7E) && (readSerialCount >= revData[3]+4+2) ) {
                     //LOG_I("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
                     //Serial.printf("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
                     for(int i=0;i<readSerialCount;i++)

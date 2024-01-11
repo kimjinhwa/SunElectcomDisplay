@@ -230,10 +230,6 @@ void setup()
     lv_label_set_text(ui_TimeLabel, "");
     lv_label_set_text(ui_TimeLabel1, "");
   
-    // lv_textarea_set_text(ui_HighVoltageTxt, String(ipAddress_struct.HighVoltage / 100.0, 2).c_str()); // voltage
-    // lv_textarea_set_text(ui_LowVoltageTxt, String(ipAddress_struct.LowVoltage / 100.0, 2).c_str());   // voltage
-    // lv_textarea_set_text(ui_HighTempTxt, String(ipAddress_struct.HighTemp).c_str());                  // voltage
-    // lv_textarea_set_text(ui_HighImpTxt, String(ipAddress_struct.HighImp / 100.0, 2).c_str());         // voltage
     Serial.println("Setup done");
   }
   struct tm tm;
@@ -257,19 +253,24 @@ void setup()
 static int interval = 1000;
 static unsigned long previousmills = 0;
 static int everySecondInterval = 1000;
+static int every100ms= 100;
 static unsigned long now;
 uint32_t i;
 void loop()
 {
   void *parameters;
-  lv_timer_handler(); /* let the GUI do its work */
   wifiOtaloop();
-  vTaskDelay(10);
   now = millis();
   serialProtocalparse();
+  if ((now - previousmills > every100ms))
+  {
+    previousmills = now;
+  }
   if ((now - previousmills > everySecondInterval))
   {
     previousmills = now;
     delay(10);
   }
+  lv_timer_handler(); /* let the GUI do its work */
+  vTaskDelay(5);
 }
