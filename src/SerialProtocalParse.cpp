@@ -31,24 +31,34 @@ static int ValidData=0;
 static int readSerialCount =0;
 static uint8_t revData[255];
 int readSerial1Data();
-
-int readSerial1Data(){
-        if(Serial1.available()){
-            revData[readSerialCount] = Serial1.read();
-            readSerialCount++;
-            if(readSerialCount>254)readSerialCount=0;
-            if(readSerialCount>4){
-                if((revData[0]= 0x7E) && (readSerialCount >= revData[3]+4+2) ) {
-                    //LOG_I("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
-                    //Serial.printf("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
-                    for(int i=0;i<readSerialCount;i++)
-                      Serial.printf(" %02x",revData[i]);
-                    ValidData = 1; 
-                    return 1;
-                }
-            }
-        };
-        return 0;
+int delayCount =0;
+int readSerial1Data()
+{
+  while (Serial1.available())// 일단 데이타가 도착하면 전부 다 읽는다.
+  {
+    if (Serial1.available())
+    {
+      revData[readSerialCount] = Serial1.read();
+      readSerialCount++;
+    }
+    if (!Serial1.available())
+      delay(2);
+  }
+  if (readSerialCount > 254)
+    readSerialCount = 0;
+  if (readSerialCount > 4)
+  {
+    if ((revData[0] = 0x7E) && (readSerialCount >= revData[3] + 4 + 2))
+    {
+      // LOG_I("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
+      // Serial.printf("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
+      for (int i = 0; i < readSerialCount; i++)
+        Serial.printf(" %02x", revData[i]);
+      ValidData = 1;
+      return 1;
+    }
+  }
+  return 0;
 }
 lv_obj_t* ui_packVoltage[8] = {
   ui_lblPack1, ui_lblPack2, ui_lblPack3, ui_lblPack4,
@@ -60,17 +70,27 @@ lv_obj_t* ui_cellVoltage[15] = {
 };
 float avgVoltage =0.0;
 //lblOutputVoltage
+int isModuleExigist[8]={0,0,0,0,0,0,0,0};
+//uint8_t isModuleExigist=0x00;
+int ModuleVoltage[8]={0,0,0,0,0,0,0,0};
 void displayToLcd(int packNumber)
 {
   batteryInofo_t dest;
   naradaClient.copyBatInfoData(packNumber, &dest);
-  if (packNumber == 0)
-    avgVoltage = dest.totalVoltage;
-  else
-  {
-    avgVoltage += dest.totalVoltage;
-    avgVoltage /= 2;
+
+  //isModuleExigist |= 1 << packNumber;
+  isModuleExigist[packNumber]=1;
+  ModuleVoltage[packNumber] = dest.totalVoltage;
+
+  avgVoltage  = 0;
+  int packCount=0;
+  for(int i=0;i<= 8 ;i++){
+    if(isModuleExigist[i]){  // 팩의 데이타를 한번이라라도 받았다면...
+      avgVoltage =+ ModuleVoltage[i];
+      packCount++;
+    }
   }
+  avgVoltage /= packCount;
   avgVoltage /= 100.0;
   String strTemp;
   strTemp = "AVG  :" + String(avgVoltage);

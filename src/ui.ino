@@ -21,6 +21,9 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_color_t *disp_draw_buf;
 static lv_disp_drv_t disp_drv;
 static unsigned long last_ms;
+//static lv_obj_t *led;
+#define LED_OFF_TIME 10
+uint16_t lcdOntime=0;
 
 
 Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
@@ -73,10 +76,12 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
       /*Set the coordinates*/
       data->point.x = touch_last_x;
       data->point.y = touch_last_y;
-      Serial.print( "Data xx " );
-      Serial.println( data->point.x );
-      Serial.print( "Data yy " );
-      Serial.println( data->point.y );
+      ledcWrite(0,255);
+      lcdOntime=0;
+      // Serial.print( "Data xx " );
+      // Serial.println( data->point.x );
+      // Serial.print( "Data yy " );
+      // Serial.println( data->point.y );
     }
     else if (touch_released())
     {
@@ -185,6 +190,8 @@ void setup()
   delay(500);
   lv_init();
 
+  //led = lv_led_create(lv_scr_act());
+
   // Init touch device
   pinMode(TOUCH_GT911_RST, OUTPUT);
   digitalWrite(TOUCH_GT911_RST, LOW);
@@ -243,8 +250,9 @@ void setup()
   tv.tv_sec = mktime(&tm);
   tv.tv_usec = 0;
   settimeofday(&tv, NULL);
-
+#ifdef USEWIFI
   wifiOTAsetup() ;
+#endif
   pinMode(13,OUTPUT);
   pinMode(12,OUTPUT);
   EEPROM.readBytes(1, (byte *)&ipAddress_struct, sizeof(ipAddress_struct));
@@ -255,7 +263,7 @@ static unsigned long previousmills = 0;
 static int everySecondInterval = 1000;
 static int every100ms= 100;
 static unsigned long now;
-uint32_t i;
+unsigned long incTime=1;
 void loop()
 {
   void *parameters;
@@ -265,11 +273,14 @@ void loop()
   if ((now - previousmills > every100ms))
   {
     previousmills = now;
+    incTime++;
   }
-  if ((now - previousmills > everySecondInterval))
+  if ((incTime % 10) == 0) // 100*10 = 1S
   {
-    previousmills = now;
-    delay(10);
+    lcdOntime++;
+    incTime++;
+    if(lcdOntime >= LED_OFF_TIME) //lv_led_off(led);
+      ledcWrite(0,0);
   }
   lv_timer_handler(); /* let the GUI do its work */
   vTaskDelay(5);
