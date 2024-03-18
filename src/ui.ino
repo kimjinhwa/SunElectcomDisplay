@@ -9,10 +9,13 @@
 #include "main.h"
 #include "src/ui.h"
 #include "wifiOTA.h"
+#include <esp_task_wdt.h>
+//#include "lv_i18n/lv_i18n.h" 
 
 #define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
 #define TFT_BL 2
-
+#define BRIGHT  155 
+#define WDT_TIMEOUT 120 
 
 static uint32_t screenWidth;
 static uint32_t screenHeight;
@@ -43,7 +46,7 @@ Arduino_RPi_DPI_RGBPanel *gfx = new Arduino_RPi_DPI_RGBPanel(
 
     800 /* width */, 0 /* hsync_polarity */, 210 /* hsync_front_porch */, 30 /* hsync_pulse_width */, 16 /* hsync_back_porch */,
     480 /* height */, 0 /* vsync_polarity */, 22 /* vsync_front_porch */, 13 /* vsync_pulse_width */, 10 /* vsync_back_porch */,
-    1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */);
+    1 /* pclk_active_neg */, 12000000 /* prefer_speed */, true /* auto_flush */);
   
 #include "touch.h"
 #if LV_USE_LOG != 0
@@ -76,7 +79,7 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
       /*Set the coordinates*/
       data->point.x = touch_last_x;
       data->point.y = touch_last_y;
-      ledcWrite(0,255);
+      ledcWrite(0,BRIGHT);
       lcdOntime=0;
       // Serial.print( "Data xx " );
       // Serial.println( data->point.x );
@@ -178,7 +181,7 @@ void setup()
 
   ledcSetup(0, 300, 8);
   ledcAttachPin(TFT_BL, 0);
-  ledcWrite(0, 255); /* Screen brightness can be modified by adjusting this parameter. (0-255) */
+  ledcWrite(0, BRIGHT); /* Screen brightness can be modified by adjusting this parameter. (0-255) */
 
   gfx->fillScreen(RED);
   delay(500);
@@ -257,6 +260,9 @@ void setup()
   pinMode(12,OUTPUT);
   EEPROM.readBytes(1, (byte *)&ipAddress_struct, sizeof(ipAddress_struct));
   setMemoryDataToLCD();
+  esp_task_wdt_init(WDT_TIMEOUT, true);
+  esp_task_wdt_add(NULL);
+
 };
 static int interval = 1000;
 static unsigned long previousmills = 0;
@@ -269,6 +275,7 @@ void loop()
   void *parameters;
   wifiOtaloop();
   now = millis();
+  esp_task_wdt_reset();
   serialProtocalparse();
   if ((now - previousmills > every100ms))
   {

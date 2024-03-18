@@ -84,8 +84,8 @@ void displayToLcd(int packNumber)
 
   avgVoltage  = 0;
   int packCount=0;
-  for(int i=0;i<= 8 ;i++){
-    if(isModuleExigist[i]){  // 팩의 데이타를 한번이라라도 받았다면...
+  for(int i=0;i< 8 ;i++){
+    if(isModuleExigist[i]==1){  // 팩의 데이타를 한번이라라도 받았다면...
       avgVoltage =+ ModuleVoltage[i];
       packCount++;
     }
