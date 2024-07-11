@@ -118,6 +118,8 @@ void setMemoryDataToLCD(){
   lv_textarea_set_text(ui_txtGATEWAY3,String(gateway[2]).c_str());
   lv_textarea_set_text(ui_txtGATEWAY4,String(gateway[3]).c_str());
 
+  // String HeaderText = ipAddress_struct.deviceName;
+  // HeaderText ;
   lv_label_set_text(ui_HeaderTitle,ipAddress_struct.deviceName);
   lv_textarea_set_text(ui_txtDEVICENAME,ipAddress_struct.deviceName);
   lv_textarea_set_text(ui_txtYear,"");
@@ -290,5 +292,5 @@ void loop()
       ledcWrite(0,0);
   }
   lv_timer_handler(); /* let the GUI do its work */
-  vTaskDelay(5);
+  vTaskDelay(50);
 }

@@ -75,6 +75,12 @@ int isModuleExigist[8]={0,0,0,0,0,0,0,0};
 int ModuleVoltage[8]={0,0,0,0,0,0,0,0};
 void displayToLcd(int packNumber)
 {
+
+  String HeaderText = ipAddress_struct.deviceName;
+  HeaderText += "-";
+  HeaderText += packNumber+1;
+  lv_label_set_text(ui_HeaderTitle,HeaderText.c_str() );
+
   batteryInofo_t dest;
   naradaClient.copyBatInfoData(packNumber, &dest);
 
