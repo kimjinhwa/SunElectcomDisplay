@@ -16,7 +16,7 @@
 #define MODULE_2  2
 
 NaradaClient232 naradaClient;
-batteryInofo_t batInfo[8];
+//batteryInofo_t naradaClient.batInfo[8];
 
 static const char *TAG ="protocal";
 bool isHighVoltage=false;
@@ -27,13 +27,13 @@ StaticJsonDocument<3072> doc;
 
 static uint8_t nowWindows = MODULE_1;
 extern nvsSystemSet ipAddress_struct;
-static int ValidData=0;
-static int readSerialCount =0;
 static uint8_t revData[255];
 int readSerial1Data();
 int delayCount =0;
 int readSerial1Data()
 {
+  int timeout=2000;
+  int readSerialCount =0;
   while (Serial1.available())// 일단 데이타가 도착하면 전부 다 읽는다.
   {
     if (Serial1.available())
@@ -41,22 +41,33 @@ int readSerial1Data()
       revData[readSerialCount] = Serial1.read();
       readSerialCount++;
     }
-    if (!Serial1.available())
-      delay(2);
+    while(!Serial1.available()){
+      delayMicroseconds(1);
+      timeout--;
+      if(!timeout)break;
+      // if (!Serial1.available())
+      //   delay(2);
+    }
   }
-  if (readSerialCount > 254)
-    readSerialCount = 0;
+  if (readSerialCount > 254) readSerialCount = 0;
   if (readSerialCount > 4)
   {
-    if ((revData[0] = 0x7E) && (readSerialCount >= revData[3] + 4 + 2))
+    if ((revData[0] == 0x7E) && (readSerialCount >= revData[3] + 4 + 2))
     {
       // LOG_I("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
-      // Serial.printf("\n-----Data count is %d %d\n",readSerialCount ,revData[3]+4+2);
-      for (int i = 0; i < readSerialCount; i++)
-        Serial.printf(" %02x", revData[i]);
-      ValidData = 1;
+      Serial.printf("\nModule %d Data count is %d %d\n",revData[1],readSerialCount ,revData[3]+4+2);
+      // for (int i = 0; i < readSerialCount; i++)
+      //   Serial.printf(" %02x", revData[i]);
       return 1;
     }
+    else if ((revData[0] == 0x7D) && (readSerialCount >= revData[3] + 4 + 2))
+    {
+      Serial.printf("\nModule %d read failed ",  revData[1]);
+      for (int i = 3; i < 255; i++)revData[i]=0;
+      readSerialCount = 0;
+      return 2;
+    }
+
   }
   return 0;
 }
@@ -70,135 +81,137 @@ lv_obj_t* ui_cellVoltage[15] = {
 };
 float avgVoltage =0.0;
 //lblOutputVoltage
-int isModuleExigist[8]={0,0,0,0,0,0,0,0};
-//uint8_t isModuleExigist=0x00;
 int ModuleVoltage[8]={0,0,0,0,0,0,0,0};
-void displayToLcd(int packNumber)
+
+void displayToLcd(int packNumber,bool isSucess)
 {
 
   String HeaderText = ipAddress_struct.deviceName;
+  int packCount=0;
+  String strTemp;
+  float highCellVoltage;
+  float lowCellVoltage ;
+  float differential;
+
   HeaderText += "-";
   HeaderText += packNumber+1;
-  lv_label_set_text(ui_HeaderTitle,HeaderText.c_str() );
+  if(isSucess)lv_label_set_text(ui_HeaderTitle,HeaderText.c_str() );
 
-  batteryInofo_t dest;
-  naradaClient.copyBatInfoData(packNumber, &dest);
+  ModuleVoltage[packNumber] = naradaClient.batInfo[packNumber].totalVoltage;
 
-  //isModuleExigist |= 1 << packNumber;
-  isModuleExigist[packNumber]=1;
-  ModuleVoltage[packNumber] = dest.totalVoltage;
-
-  avgVoltage  = 0;
-  int packCount=0;
+  avgVoltage  = 0.0;
+  int moduleCount=0; 
   for(int i=0;i< 8 ;i++){
-    if(isModuleExigist[i]==1){  // 팩의 데이타를 한번이라라도 받았다면...
-      avgVoltage =+ ModuleVoltage[i];
-      packCount++;
-    }
+      avgVoltage += naradaClient.batInfo[i].totalVoltage;
+      //Serial.printf("\ntotalVoltage %d" ,naradaClient.batInfo[i].totalVoltage);
+      if(naradaClient.batInfo[i].totalVoltage>1.0)moduleCount++;
   }
-  avgVoltage /= packCount;
-  avgVoltage /= 100.0;
-  String strTemp;
-  strTemp = "AVG  :" + String(avgVoltage);
-  lv_label_set_text(ui_lblOutputVoltage, strTemp.c_str());
+  //Serial.printf("\navgVoltage  %f" ,avgVoltage  );
+  avgVoltage /= moduleCount;
+  //Serial.printf("\navgVoltage  %f" ,avgVoltage  );
+  //avgVoltage /= 100.0;
+  //Serial.printf("\navgVoltage  %f" ,avgVoltage  );
 
-  strTemp = "AMP  :" + String((dest.ampere - 30000) / 100.0f);
-  lv_label_set_text(ui_lblTotalAmpere, strTemp.c_str());
+  strTemp = "AVG  :" + String(avgVoltage);
+  if(isSucess)lv_label_set_text(ui_lblOutputVoltage, strTemp.c_str());
+
+  strTemp = "AMP  :" + String((naradaClient.batInfo[packNumber].ampere - 30000) / 100.0f);
+  if(isSucess)lv_label_set_text(ui_lblTotalAmpere, strTemp.c_str());
 
   strTemp = "TEMP : " + String(
-                            (dest.Tempreature[0] - 50 +
-                             dest.Tempreature[1] - 50 +
-                             dest.Tempreature[2] - 50 +
-                             dest.Tempreature[3] - 50) /
+                            (naradaClient.batInfo[packNumber].Tempreature[0] - 50 +
+                             naradaClient.batInfo[packNumber].Tempreature[1] - 50 +
+                             naradaClient.batInfo[packNumber].Tempreature[2] - 50 +
+                             naradaClient.batInfo[packNumber].Tempreature[3] - 50) /
                             4);
-  lv_label_set_text(ui_lblTotalTemperature, strTemp.c_str());
+  if(isSucess)lv_label_set_text(ui_lblTotalTemperature, strTemp.c_str());
 
-  float highCellVoltage = dest.voltage[0];
-  float lowCellVoltage = dest.voltage[0];
+  highCellVoltage = naradaClient.batInfo[packNumber].voltage[0];
+  lowCellVoltage = naradaClient.batInfo[packNumber].voltage[0];
 
-  for (int i = 1; i < dest.voltageNumber; i++)
+  for (int i = 1; i < naradaClient.batInfo[packNumber].voltageNumber; i++)
   {
-    highCellVoltage = dest.voltage[i] > highCellVoltage ? dest.voltage[i] : highCellVoltage;
-    lowCellVoltage = dest.voltage[i] < lowCellVoltage ? dest.voltage[i] : lowCellVoltage;
+    highCellVoltage = naradaClient.batInfo[packNumber].voltage[i] > highCellVoltage ? naradaClient.batInfo[packNumber].voltage[i] : highCellVoltage;
+    lowCellVoltage = naradaClient.batInfo[packNumber].voltage[i] < lowCellVoltage ? naradaClient.batInfo[packNumber].voltage[i] : lowCellVoltage;
   }
   highCellVoltage /= 1000.0f;
   lowCellVoltage /= 1000.0f;
-  float differential;
+  
   differential = highCellVoltage - lowCellVoltage;
   strTemp = "HVOL :" + String(highCellVoltage) + "V";
-  lv_label_set_text(ui_lblHighVoltage, strTemp.c_str());
+  if(isSucess)lv_label_set_text(ui_lblHighVoltage, strTemp.c_str());
 
   strTemp = "LVOL :" + String(lowCellVoltage) + "V";
-  lv_label_set_text(ui_lblLowVoltage, strTemp.c_str());
+  if(isSucess)lv_label_set_text(ui_lblLowVoltage, strTemp.c_str());
 
   strTemp = "DIFF :" + String(differential * 1000) + "mV";
-  lv_label_set_text(ui_lblDiff, strTemp.c_str());
-  if(dest.Tempreature[0]< 50) dest.Tempreature[0] =0;
-  if(dest.Tempreature[1]< 50) dest.Tempreature[1] =0;
-  if(dest.Tempreature[2]< 50) dest.Tempreature[2] =0;
-  if(dest.Tempreature[3]< 50) dest.Tempreature[3] =0;
-  String tTemperature1(dest.Tempreature[0] - 50);
-  String tTemperature2(dest.Tempreature[1] - 50);
-  String tTemperature3(dest.Tempreature[2] - 50);
-  String tTemperature4(dest.Tempreature[3] - 50);
+  if(isSucess)lv_label_set_text(ui_lblDiff, strTemp.c_str());
+  if(naradaClient.batInfo[packNumber].Tempreature[0]< 50) naradaClient.batInfo[packNumber].Tempreature[0] =0;
+  if(naradaClient.batInfo[packNumber].Tempreature[1]< 50) naradaClient.batInfo[packNumber].Tempreature[1] =0;
+  if(naradaClient.batInfo[packNumber].Tempreature[2]< 50) naradaClient.batInfo[packNumber].Tempreature[2] =0;
+  if(naradaClient.batInfo[packNumber].Tempreature[3]< 50) naradaClient.batInfo[packNumber].Tempreature[3] =0;
+  String tTemperature1(naradaClient.batInfo[packNumber].Tempreature[0] - 50);
+  String tTemperature2(naradaClient.batInfo[packNumber].Tempreature[1] - 50);
+  String tTemperature3(naradaClient.batInfo[packNumber].Tempreature[2] - 50);
+  String tTemperature4(naradaClient.batInfo[packNumber].Tempreature[3] - 50);
 
   String cellVoltage = "";
-  cellVoltage += String(dest.voltage[0] / 1000.0f);
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[0] / 1000.0f);
   cellVoltage += "\n(" + tTemperature1 + ")";
-  lv_label_set_text(ui_lblvoltage1, cellVoltage.c_str());
+  if(isSucess)lv_label_set_text(ui_lblvoltage1, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[1] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage2, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[1] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage2, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[2] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage3, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[2] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage3, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[3] / 1000.0f);
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[3] / 1000.0f);
   cellVoltage += "\n(" + tTemperature2 + ")";
-  lv_label_set_text(ui_lblvoltage4, cellVoltage.c_str());
+  if(isSucess)lv_label_set_text(ui_lblvoltage4, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[4] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage5, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[4] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage5, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[5] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage6, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[5] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage6, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[6] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage7, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[6] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage7, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[7] / 1000.0f);
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[7] / 1000.0f);
   cellVoltage += "\n(" + tTemperature3 + ")";
-  lv_label_set_text(ui_lblvoltage8, cellVoltage.c_str());
+  if(isSucess)lv_label_set_text(ui_lblvoltage8, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[8] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage9, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[8] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage9, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[9] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage10, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[9] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage10, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[10] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage11, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[10] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage11, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[11] / 1000.0f);
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[11] / 1000.0f);
   cellVoltage += "\n(" + tTemperature4 + ")";
-  lv_label_set_text(ui_lblvoltage12, cellVoltage.c_str());
+  if(isSucess)lv_label_set_text(ui_lblvoltage12, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[12] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage13, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[12] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage13, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[13] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage14, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[13] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage14, cellVoltage.c_str());
   cellVoltage = "";
-  cellVoltage += String(dest.voltage[14] / 1000.0f);
-  lv_label_set_text(ui_lblvoltage15, cellVoltage.c_str());
+  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[14] / 1000.0f);
+  if(isSucess)lv_label_set_text(ui_lblvoltage15, cellVoltage.c_str());
 
-  // lv_label_set_text((lv_obj_t *)ui_packVoltage[packNumber], String( dest.totalVoltage!=0 ? dest.totalVoltage/100.0f:0).c_str());
+  // if(isSucess)lv_label_set_text((lv_obj_t *)ui_packVoltage[packNumber], String( naradaClient.batInfo[packNumber].totalVoltage!=0 ? naradaClient.batInfo[packNumber].totalVoltage/100.0f:0).c_str());
   String tVoltage = "";
   tVoltage = "#";
   tVoltage += packNumber + 1;
   tVoltage += " ";
-  if (dest.totalVoltage != 0)
-    tVoltage += String(float(dest.totalVoltage) / 100.0f);
+  if (naradaClient.batInfo[packNumber].totalVoltage != 0)
+    tVoltage += String(float(naradaClient.batInfo[packNumber].totalVoltage) / 100.0f);
   else
     tVoltage += 0;
   switch (packNumber)
@@ -232,47 +245,62 @@ void displayToLcd(int packNumber)
   }
 };
 void printPackData(int packNumber){
-  batteryInofo_t dest;
-  naradaClient.copyBatInfoData(packNumber,&dest);
-
-  Serial.printf("\ndest.voltage %d",dest.voltageNumber );
+  //batteryInofo_t dest;
+  //naradaClient.copynaradaClient.batInfoData(packNumber,&dest);
+  
+  Serial.printf("\nnaradaClient.batInfo[packNumber].voltage %d",naradaClient.batInfo[packNumber].voltageNumber );
     for(int j=0;j<15;j++)
-      Serial.printf(" %d",dest.voltage[j]);
-  Serial.printf("\ndest.ampere %d",dest.ampere  );
-  Serial.printf("\ndest.soc%d",dest.soc);
-  Serial.printf("\ndest.Capacity  %d",dest.Capacity );
-  Serial.printf("\ndest.TempreatureNumber %d",dest.TempreatureNumber);
-  Serial.printf("\ndest.Tempreature ");
-    for(int j=0;j<4;j++) Serial.printf("dest.Tempreature %d",dest.Tempreature[j]);
+      Serial.printf(" %d",naradaClient.batInfo[packNumber].voltage[j]);
+  Serial.printf("\nnaradaClient.batInfo[packNumber].ampere %d",naradaClient.batInfo[packNumber].ampere  );
+  Serial.printf("\nnaradaClient.batInfo[packNumber].soc%d",naradaClient.batInfo[packNumber].soc);
+  Serial.printf("\nnaradaClient.batInfo[packNumber].Capacity  %d",naradaClient.batInfo[packNumber].Capacity );
+  Serial.printf("\nnaradaClient.batInfo[packNumber].TempreatureNumber %d",naradaClient.batInfo[packNumber].TempreatureNumber);
+  Serial.printf("\nnaradaClient.batInfo[packNumber].Tempreature ");
+    for(int j=0;j<4;j++) Serial.printf("naradaClient.batInfo[packNumber].Tempreature %d",naradaClient.batInfo[packNumber].Tempreature[j]);
 
-  Serial.printf("\ndest.packStatus");
-    for(int j=0;j<5;j++)Serial.printf("dest.packStatus%d",dest.packStatus[j]);
-  Serial.printf("\ndest.readCycleCount %d",dest.readCycleCount );
-  Serial.printf("\ndest.totalVoltage %d",dest.totalVoltage);
-  Serial.printf("\ndest.SOH %d",dest.SOH );
-  Serial.printf("\ndest.BMS_PROTECT_STATUS %d",dest.BMS_PROTECT_STATUS );
+  Serial.printf("\nnaradaClient.batInfo[packNumber].packStatus");
+    for(int j=0;j<5;j++)Serial.printf("naradaClient.batInfo[packNumber].packStatus%d",naradaClient.batInfo[packNumber].packStatus[j]);
+  Serial.printf("\nnaradaClient.batInfo[packNumber].readCycleCount %d",naradaClient.batInfo[packNumber].readCycleCount );
+  Serial.printf("\nnaradaClient.batInfo[packNumber].totalVoltage %d",naradaClient.batInfo[packNumber].totalVoltage);
+  Serial.printf("\nnaradaClient.batInfo[packNumber].SOH %d",naradaClient.batInfo[packNumber].SOH );
+  Serial.printf("\nnaradaClient.batInfo[packNumber].BMS_PROTECT_STATUS %d",naradaClient.batInfo[packNumber].BMS_PROTECT_STATUS );
 }
+bool isFirst=true;
 void serialProtocalparse()
 {
   int packNumber = 0;
+  int ValidData = 0;
   ValidData = readSerial1Data();
-  if (ValidData)
+  if (ValidData == 1)
   {
     packNumber = revData[1];
-    for (int i = 0; i < readSerialCount; i++)
-      Serial.write(revData[i]);
+
+    // for (int i = 0; i < readSerialCount; i++)
+    //   Serial.write(revData[i]);
     if (naradaClient.readAnswerData(&revData[0]) == 0)
     {
       Serial.printf("\nData Received OK Pack : %d", packNumber);
-      displayToLcd(packNumber);
       printPackData(packNumber);
-    }
+      if(isFirst){ //처음 한번만 화면에 뿌려준다. 
+      // 이후에는 사이드 팩정보만 업데이트 한다.
+        displayToLcd(packNumber,true);
+        isFirst=false;
+      }
+      else displayToLcd(packNumber,false);
 
+    }
     ValidData = 0;
-    readSerialCount = 0;
     memset(revData, 0x00, 255);
   }
+  else if (ValidData == 2)
+  {
+      packNumber = revData[1];
+      naradaClient.initBatInfo(packNumber);
+      displayToLcd(packNumber,false);
+      //printPackData(packNumber);
+  }
 }
+
 // while(Serial1.available()){
 //   c=Serial1.read();
 //   Serial.printf(" %02x",c);
@@ -286,7 +314,12 @@ void btnPackChange(lv_event_t * e)
 
 void btnEventPack1(lv_event_t * e)
 {
-  displayToLcd(0);
+
+  // while(Serial1.available());
+  // delay(10);
+  // Serial1.printf("datareq 1 \n\r");
+  displayToLcd(0,true);
+  printPackData(0);
 }
 
 // void saveButtenEvent(lv_event_t * e)
@@ -296,40 +329,54 @@ void btnEventPack1(lv_event_t * e)
 
 void btnEventPack2(lv_event_t * e)
 {
-  displayToLcd(1);
+  // while(Serial1.available());
+  // delay(10);
+  // Serial1.printf("datareq 0 \n\r");
+  displayToLcd(1,true);
+  printPackData(1);
 }
 
 void btnEventPack3(lv_event_t * e)
 {
-  displayToLcd(2);
+  displayToLcd(2,true);
+  printPackData(2);
 }
 
 void btnEventPack4(lv_event_t * e)
 {
-  displayToLcd(3);
+  displayToLcd(3,true);
+  printPackData(3);
 }
 
 void btnEventPack5(lv_event_t * e)
 {
-  displayToLcd(4);
+  displayToLcd(4,true);
+  printPackData(4);
 }
 
 void btnEventPack6(lv_event_t * e)
 {
-  displayToLcd(5);
+  displayToLcd(5,true);
+  printPackData(5);
 }
 
 void btnEventPack7(lv_event_t * e)
 {
-  displayToLcd(6);
+  displayToLcd(6,true);
+  printPackData(6);
 }
 
 void btnEventPack8(lv_event_t * e)
 {
-  displayToLcd(7);
+  displayToLcd(7,true);
+  printPackData(7);
 }
 void saveButtenEvent(lv_event_t * e)
 {
+  while(Serial1.available());
+  Serial1.printf("datareq 0 \n\r");
+  delay(100);
+
   IPAddress ipaddress(
     String(lv_textarea_get_text(ui_txtIPADDRESS1)).toInt(),
     String(lv_textarea_get_text(ui_txtIPADDRESS2)).toInt(),

@@ -16,6 +16,7 @@ uploadFirmware/
 *~
 *.swp
 UploadFiles/Deploy - Shortcut.lnk
-lib/lv_i18n #Version.h
+lib/lv_i18n 
+#Version.h
 .gitignore
 *.egg

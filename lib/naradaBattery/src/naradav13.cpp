@@ -59,6 +59,50 @@ void NaradaClient232::makeInt(uint16_t *dest,const uint8_t *src,byte len){
 }
 
 
+void NaradaClient232::initBatInfo()
+{
+    for(int packNumber=0;packNumber<8;packNumber++)
+        for(int j=0;j<15;j++)batInfo[packNumber].voltage[j]=0;
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].voltageNumber =15;
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].voltage[16]; // 상위 3비트는 균등화 플레그, 과전압플레그, 배터리전전압 플레그    
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].ampere=0;   // ofset 30000, (30000 - (data0*256 + data1) )/100
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].soc=0;    // 0.01
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].Capacity=0;    //0.01
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].TempreatureNumber=4; //설치된 온도계의 수
+    for(int packNumber=0;packNumber<8;packNumber++)
+        for(int j=0;j<6;j++)batInfo[packNumber].Tempreature[j]=50;   // offset -50 
+    for(int packNumber=0;packNumber<8;packNumber++)
+        for(int j=0;j<10;j++)batInfo[packNumber].packStatus[j]=0;    
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].readCycleCount=0;    
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].totalVoltage=0; //0.01   
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].SOH=0; //0.01   % SOH = data0*256 + data1
+    for(int packNumber=0;packNumber<8;packNumber++)
+        batInfo[packNumber].BMS_PROTECT_STATUS=0; //0.01   % SOH = data0*256 + data1
+}
+void NaradaClient232::initBatInfo(int packNumber)
+{
+    for(int j=0;j<15;j++)batInfo[packNumber].voltage[j]=0;
+    batInfo[packNumber].voltageNumber =15;
+    batInfo[packNumber].ampere=0;   // ofset 30000, (30000 - (data0*256 + data1) )/100
+    batInfo[packNumber].soc=0;    // 0.01
+    batInfo[packNumber].Capacity=0;    //0.01
+    batInfo[packNumber].TempreatureNumber=4; //설치된 온도계의 수
+    for(int j=0;j<6;j++)batInfo[packNumber].Tempreature[j]=50;   // offset -50 
+    for(int j=0;j<10;j++)batInfo[packNumber].packStatus[j]=0;    
+    batInfo[packNumber].readCycleCount=0;    
+    batInfo[packNumber].totalVoltage=0; //0.01   
+    batInfo[packNumber].SOH=0; //0.01   % SOH = data0*256 + data1
+    batInfo[packNumber].BMS_PROTECT_STATUS=0; //0.01   % SOH = data0*256 + data1
+}
 /* 팩정보를 복사해 준다*/
 void NaradaClient232::copyBatInfoData(int packNumber, batteryInofo_t* dest){
     xSemaphoreTake(revDataMutex, portMAX_DELAY);
@@ -142,7 +186,7 @@ int NaradaClient232::dataParseExt(int packNumber,const uint8_t *revData){
 
 Error NaradaClient232::readAnswerData(uint8_t *rData){
     memcpy(revData,rData,255);
-    delay(500);
+    delay(5);
     if(revData[4+revData[3]] != checksum(revData,4+revData[3])) return CRC_ERROR;
     // Serial.printf("\nchecksum%d %02x %02x \n" ,revData[3],
     //         revData[4+revData[3]] ,checksum(revData,4+revData[3]));

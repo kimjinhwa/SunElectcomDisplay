@@ -10,6 +10,7 @@
 #include "src/ui.h"
 #include "wifiOTA.h"
 #include <esp_task_wdt.h>
+#include "naradav13.h"
 //#include "lv_i18n/lv_i18n.h" 
 
 #define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
@@ -25,9 +26,10 @@ static lv_color_t *disp_draw_buf;
 static lv_disp_drv_t disp_drv;
 static unsigned long last_ms;
 //static lv_obj_t *led;
-#define LED_OFF_TIME 10
+#define LED_OFF_TIME 600
 uint16_t lcdOntime=0;
 
+extern NaradaClient232 naradaClient;
 
 Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
     GFX_NOT_DEFINED /* CS */, GFX_NOT_DEFINED /* SCK */, GFX_NOT_DEFINED /* SDA */,
@@ -133,6 +135,8 @@ void setMemoryDataToLCD(){
   lv_label_set_text(ui_DateLabel1,"");
   lv_label_set_text(ui_TimeLabel1,"");
 }
+void displayToLcd(int packNumber,bool isSucess);
+extern uint isModuleExgist[8];
 void setup()
 {
   Serial.begin(BAUDRATEDEF);
@@ -264,7 +268,8 @@ void setup()
   setMemoryDataToLCD();
   esp_task_wdt_init(WDT_TIMEOUT, true);
   esp_task_wdt_add(NULL);
-
+  naradaClient.initBatInfo();
+  //for(int i=0;i<8;i++)displayToLcd(i,true);
 };
 static int interval = 1000;
 static unsigned long previousmills = 0;
@@ -272,6 +277,7 @@ static int everySecondInterval = 1000;
 static int every100ms= 100;
 static unsigned long now;
 unsigned long incTime=1;
+
 void loop()
 {
   void *parameters;
@@ -279,18 +285,19 @@ void loop()
   now = millis();
   esp_task_wdt_reset();
   serialProtocalparse();
-  if ((now - previousmills > every100ms))
+  if ((now - previousmills > everySecondInterval))
   {
     previousmills = now;
     incTime++;
-  }
-  if ((incTime % 10) == 0) // 100*10 = 1S
-  {
     lcdOntime++;
-    incTime++;
-    if(lcdOntime >= LED_OFF_TIME) //lv_led_off(led);
-      ledcWrite(0,0);
   }
+  if( incTime % 20 ==0){
+    //매 10초마다 검사한다.
+    incTime++;
+  }
+  //if ((incTime % 10) == 0) // 100*10 = 1S
+  if(lcdOntime >= LED_OFF_TIME) //lv_led_off(led);
+      ledcWrite(0,0);
   lv_timer_handler(); /* let the GUI do its work */
   vTaskDelay(50);
 }

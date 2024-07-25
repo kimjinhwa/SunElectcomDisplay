@@ -54,10 +54,12 @@ public:
     void makeInt(uint16_t *dest,const uint8_t *src,byte len);
     void makeInt(int *dest,const uint8_t *src,byte len);
     void copyBatInfoData(int packNumber,batteryInofo_t* dest );
+    void initBatInfo(int packNumber);
+    void initBatInfo();
     SemaphoreHandle_t revDataMutex;
+    batteryInofo_t batInfo[8];
 private:
     //virtual void isInstance() = 0; // make class abstract
-    batteryInofo_t batInfo[8];
 protected:
     NCOnData onData;    //Data response handler
 };
