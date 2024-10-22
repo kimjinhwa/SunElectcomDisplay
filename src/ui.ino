@@ -292,7 +292,7 @@ void loop()
     lcdOntime++;
   }
   if( incTime % 20 ==0){
-    //매 10초마다 검사한다.
+    //매 20초마다 검사한다.
     incTime++;
   }
   //if ((incTime % 10) == 0) // 100*10 = 1S

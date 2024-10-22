@@ -40,6 +40,7 @@ int readSerial1Data()
     {
       revData[readSerialCount] = Serial1.read();
       readSerialCount++;
+      if(readSerialCount>254)readSerialCount=254;
     }
     while(!Serial1.available()){
       delayMicroseconds(1);
@@ -66,6 +67,70 @@ int readSerial1Data()
       for (int i = 3; i < 255; i++)revData[i]=0;
       readSerialCount = 0;
       return 2;
+    }
+    else{
+      Serial.printf("\nBegin Receive\n");
+      for (int i = 0; i < readSerialCount ; i++){
+        Serial.printf("%c",  revData[i]);
+      }
+      if(strstr((const char *)revData,"Begin") != NULL){
+        Serial.printf("Screen Changed \n\r");
+        lv_obj_t *current_screen = lv_scr_act();
+        if(current_screen != ui_MainScreen )
+        _ui_screen_change( &ui_MainScreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 0, 10, &ui_MainScreen_screen_init);
+
+      }
+      ;
+      if(strstr((const char *)revData,"ipaddress:") != NULL){
+        const char *ipPos = strstr((const char *)revData,"ipaddress:") ;
+        ipPos += strlen("ipaddress:");
+        char ipAddressStr[16];
+        sscanf(ipPos, "%15s", ipAddressStr); 
+        int octet1, octet2, octet3, octet4;
+        sscanf(ipAddressStr, "%d.%d.%d.%d", &octet1, &octet2, &octet3, &octet4);
+
+        // IPAddress 객체에 옥텟 값 설정
+        IPAddress ipaddr = IPAddress(octet1, octet2, octet3, octet4);
+        ipAddress_struct.IPADDRESS = ipaddr;
+        Serial.printf("\nReceived Ipaddress is %s",ipaddr.toString().c_str());
+        EEPROM.writeBytes(1, (const byte *)&ipAddress_struct, sizeof(nvsSystemSet));
+        EEPROM.commit();
+        setMemoryDataToLCD();
+      }
+      if(strstr((const char *)revData,"gateway:") != NULL){
+        const char *ipPos = strstr((const char *)revData,"gateway:") ;
+        ipPos += strlen("gateway:");
+        char ipAddressStr[16];
+        sscanf(ipPos, "%15s", ipAddressStr); 
+        int octet1, octet2, octet3, octet4;
+        sscanf(ipAddressStr, "%d.%d.%d.%d", &octet1, &octet2, &octet3, &octet4);
+
+        // IPAddress 객체에 옥텟 값 설정
+        IPAddress ipaddr = IPAddress(octet1, octet2, octet3, octet4);
+        ipAddress_struct.GATEWAY= ipaddr;
+        Serial.printf("\nReceived Gateway is %s",ipaddr.toString().c_str());
+        EEPROM.writeBytes(1, (const byte *)&ipAddress_struct, sizeof(nvsSystemSet));
+        EEPROM.commit();
+        setMemoryDataToLCD();
+      }
+      if(strstr((const char *)revData,"subnetmask:") != NULL){
+        const char *ipPos = strstr((const char *)revData,"subnetmask:") ;
+        ipPos += strlen("subnetmask:");
+        char ipAddressStr[16];
+        sscanf(ipPos, "%15s", ipAddressStr); 
+        int octet1, octet2, octet3, octet4;
+        sscanf(ipAddressStr, "%d.%d.%d.%d", &octet1, &octet2, &octet3, &octet4);
+
+        // IPAddress 객체에 옥텟 값 설정
+        IPAddress ipaddr = IPAddress(octet1, octet2, octet3, octet4);
+        ipAddress_struct.SUBNETMASK= ipaddr;
+        Serial.printf("\nReceived Subnetmask is %s",ipaddr.toString().c_str());
+        EEPROM.writeBytes(1, (const byte *)&ipAddress_struct, sizeof(nvsSystemSet));
+        EEPROM.commit();
+        setMemoryDataToLCD();
+      }
+
+      Serial.printf("\n\r");
     }
 
   }
@@ -256,10 +321,10 @@ void printPackData(int packNumber){
   Serial.printf("\nnaradaClient.batInfo[packNumber].Capacity  %d",naradaClient.batInfo[packNumber].Capacity );
   Serial.printf("\nnaradaClient.batInfo[packNumber].TempreatureNumber %d",naradaClient.batInfo[packNumber].TempreatureNumber);
   Serial.printf("\nnaradaClient.batInfo[packNumber].Tempreature ");
-    for(int j=0;j<4;j++) Serial.printf("naradaClient.batInfo[packNumber].Tempreature %d",naradaClient.batInfo[packNumber].Tempreature[j]);
+    for(int j=0;j<4;j++) Serial.printf("\n->naradaClient.batInfo[packNumber].Tempreature %d",naradaClient.batInfo[packNumber].Tempreature[j]);
 
   Serial.printf("\nnaradaClient.batInfo[packNumber].packStatus");
-    for(int j=0;j<5;j++)Serial.printf("naradaClient.batInfo[packNumber].packStatus%d",naradaClient.batInfo[packNumber].packStatus[j]);
+    for(int j=0;j<5;j++)Serial.printf("\n->naradaClient.batInfo[packNumber].packStatus%d",naradaClient.batInfo[packNumber].packStatus[j]);
   Serial.printf("\nnaradaClient.batInfo[packNumber].readCycleCount %d",naradaClient.batInfo[packNumber].readCycleCount );
   Serial.printf("\nnaradaClient.batInfo[packNumber].totalVoltage %d",naradaClient.batInfo[packNumber].totalVoltage);
   Serial.printf("\nnaradaClient.batInfo[packNumber].SOH %d",naradaClient.batInfo[packNumber].SOH );
@@ -281,12 +346,17 @@ void serialProtocalparse()
     {
       Serial.printf("\nData Received OK Pack : %d", packNumber);
       printPackData(packNumber);
+      String msg("STATUS:Module On #"); 
+      msg += packNumber+1;
+      lv_label_set_text(ui_CompanyLabel1, msg.c_str());
       if(isFirst){ //처음 한번만 화면에 뿌려준다. 
       // 이후에는 사이드 팩정보만 업데이트 한다.
         displayToLcd(packNumber,true);
         isFirst=false;
       }
-      else displayToLcd(packNumber,false);
+      else{
+        displayToLcd(packNumber,false);
+      } 
 
     }
     ValidData = 0;
@@ -295,6 +365,9 @@ void serialProtocalparse()
   else if (ValidData == 2)
   {
       packNumber = revData[1];
+      String msg("STATUS:Module Off #"); 
+      msg += packNumber+1;
+      lv_label_set_text(ui_CompanyLabel1, msg.c_str());
       naradaClient.initBatInfo(packNumber);
       displayToLcd(packNumber,false);
       //printPackData(packNumber);
@@ -373,9 +446,11 @@ void btnEventPack8(lv_event_t * e)
 }
 void saveButtenEvent(lv_event_t * e)
 {
+  char buf[255];
   while(Serial1.available());
   Serial1.printf("datareq 0 \n\r");
   delay(100);
+  while (Serial1.available() ) Serial1.read();
 
   IPAddress ipaddress(
     String(lv_textarea_get_text(ui_txtIPADDRESS1)).toInt(),
@@ -399,25 +474,44 @@ void saveButtenEvent(lv_event_t * e)
   );
   ipAddress_struct.GATEWAY= (uint32_t)gateway;
   String devicName(lv_textarea_get_text(ui_txtDEVICENAME));
-  Serial.printf("lv device name is %s",devicName);
+  Serial.printf("\nlv device name is %s",devicName);
+  Serial.printf("\nIPADDRESS %d.%d.%d.%d.",IPAddress(ipaddress)[0],IPAddress(ipaddress)[1],IPAddress(ipaddress)[2],IPAddress(ipaddress)[3]);
+  Serial.printf("\nsubnet %d.%d.%d.%d.",IPAddress(subnet)[0],IPAddress(subnet)[1],IPAddress(subnet)[2],IPAddress(subnet)[3]);
+  Serial.printf("\ngateway %d.%d.%d.%d.",IPAddress(gateway)[0],IPAddress(gateway)[1],IPAddress(gateway)[2],IPAddress(gateway)[3]);
+
   snprintf(ipAddress_struct.deviceName,20,devicName.c_str());
-  Serial.printf("device name is %s",ipAddress_struct.deviceName);
+  Serial.printf("\nWrite device name to eeprom that is %s",ipAddress_struct.deviceName);
   EEPROM.writeBytes(1, (const byte *)&ipAddress_struct, sizeof(nvsSystemSet));
   EEPROM.commit();
   EEPROM.readBytes(1, (byte *)&ipAddress_struct, sizeof(ipAddress_struct));
-  Serial.println("\nInitial Memory modified");
+  Serial.println("\nEEPROM Memory modified and Reread it now..");
   //Serial1.printf("ipaddress -set -i %s -s %s -g %s \r",ipaddress.toString(),gateway.toString(),subnet.toString());
+  Serial.printf("ipaddress -set -i %s -s %s  -g %s \n\r",ipaddress.toString(),subnet.toString(),gateway.toString());
   Serial1.printf("ipaddress -set -i %s -s %s  -g %s \n\r",ipaddress.toString(),subnet.toString(),gateway.toString());
-  delay(500);
-  Serial1.printf("ipaddress -set -i %s -s %s  -g %s \n\r",ipaddress.toString(),subnet.toString(),gateway.toString());
-  delay(500);
-  Serial1.printf("ipaddress -set -i %s -s %s  -g %s \n\r",ipaddress.toString(),subnet.toString(),gateway.toString());
-  delay(500);
-  while (Serial1.available())
-  {
-    Serial1.read();
+  int i=0;
+  memset(buf,0x00,255);
+  int timeout =0;
+  while (!Serial1.available() && timeout < 100){
+    timeout++;
+    delay(1);
   }
+  Serial.printf("\nTimeout count is %d\n",timeout);
+
+  while (Serial1.available() && i<254  )
+  {
+    buf[i++]=Serial1.read();
+    if(!Serial1.available()){
+      delay(1);
+    }
+  }
+  Serial.printf("\nbuf:%s",buf);
+  String msg("\nSTATUS:"); 
+  msg += buf;
+  msg += " Now System reboot ! Waiting....";
+  Serial.printf(msg.c_str());
   setMemoryDataToLCD();
+  lv_label_set_text(ui_CompanyLabel3, msg.c_str());
+
   Serial1.printf("reboot \r");
    //CompanyLabel3
    // Serial.printf("\ninit data \n%d %d %d %d",initRomData.HighVoltage,initRomData.LowVoltage,initRomData.HighTemp,initRomData.HighImp);
