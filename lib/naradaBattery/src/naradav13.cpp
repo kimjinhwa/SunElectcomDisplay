@@ -92,7 +92,7 @@ void NaradaClient232::initBatInfo(int packNumber)
 {
     for(int j=0;j<15;j++)batInfo[packNumber].voltage[j]=0;
     batInfo[packNumber].voltageNumber =15;
-    batInfo[packNumber].ampere=0;   // ofset 30000, (30000 - (data0*256 + data1) )/100
+    batInfo[packNumber].ampere=30000;   // ofset 30000, (30000 - (data0*256 + data1) )/100
     batInfo[packNumber].soc=0;    // 0.01
     batInfo[packNumber].Capacity=0;    //0.01
     batInfo[packNumber].TempreatureNumber=4; //설치된 온도계의 수

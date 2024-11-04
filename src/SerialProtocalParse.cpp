@@ -177,7 +177,7 @@ void displayToLcd(int packNumber,bool isSucess)
   //avgVoltage /= 100.0;
   //Serial.printf("\navgVoltage  %f" ,avgVoltage  );
 
-  strTemp = "AVG  :" + String(avgVoltage);
+  strTemp = "AVG  :" + String(avgVoltage/100);
   if(isSucess)lv_label_set_text(ui_lblOutputVoltage, strTemp.c_str());
 
   strTemp = "AMP  :" + String((naradaClient.batInfo[packNumber].ampere - 30000) / 100.0f);
@@ -209,7 +209,7 @@ void displayToLcd(int packNumber,bool isSucess)
   strTemp = "LVOL :" + String(lowCellVoltage) + "V";
   if(isSucess)lv_label_set_text(ui_lblLowVoltage, strTemp.c_str());
 
-  strTemp = "DIFF :" + String(differential * 1000) + "mV";
+  strTemp = "DIFF :" + String(int(differential * 1000)) + "mV";
   if(isSucess)lv_label_set_text(ui_lblDiff, strTemp.c_str());
   if(naradaClient.batInfo[packNumber].Tempreature[0]< 50) naradaClient.batInfo[packNumber].Tempreature[0] =0;
   if(naradaClient.batInfo[packNumber].Tempreature[1]< 50) naradaClient.batInfo[packNumber].Tempreature[1] =0;
