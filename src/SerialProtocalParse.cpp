@@ -331,6 +331,7 @@ void printPackData(int packNumber){
   Serial.printf("\nnaradaClient.batInfo[packNumber].BMS_PROTECT_STATUS %d",naradaClient.batInfo[packNumber].BMS_PROTECT_STATUS );
 }
 bool isFirst=true;
+
 void serialProtocalparse()
 {
   int packNumber = 0;
@@ -340,8 +341,6 @@ void serialProtocalparse()
   {
     packNumber = revData[1];
 
-    // for (int i = 0; i < readSerialCount; i++)
-    //   Serial.write(revData[i]);
     if (naradaClient.readAnswerData(&revData[0]) == 0)
     {
       Serial.printf("\nData Received OK Pack : %d", packNumber);
