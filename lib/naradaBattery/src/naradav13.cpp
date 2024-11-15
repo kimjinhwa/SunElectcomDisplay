@@ -66,8 +66,6 @@ void NaradaClient232::initBatInfo()
     for(int packNumber=0;packNumber<8;packNumber++)
         batInfo[packNumber].voltageNumber =15;
     for(int packNumber=0;packNumber<8;packNumber++)
-        batInfo[packNumber].voltage[16]; // 상위 3비트는 균등화 플레그, 과전압플레그, 배터리전전압 플레그    
-    for(int packNumber=0;packNumber<8;packNumber++)
         batInfo[packNumber].ampere=0;   // ofset 30000, (30000 - (data0*256 + data1) )/100
     for(int packNumber=0;packNumber<8;packNumber++)
         batInfo[packNumber].soc=0;    // 0.01

@@ -4,7 +4,6 @@
 #include <TFT_eSPI.h>
 #include "src/ui.h"
 #include <EEPROM.h>
-#include "BleJsonProtocal.h"
 #include "SerialProtocalParse.h"
 #include "main.h"
 #include "src/ui.h"
