@@ -67,7 +67,20 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
    gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)&color_p->full, w, h);
    lv_disp_flush_ready(disp);
 }
-
+static lv_obj_t *cursor_obj;
+void init_cursor() {
+    // 커서 객체 생성
+    cursor_obj = lv_obj_create(lv_scr_act());
+    
+    // 커서 스타일 설정
+    lv_obj_set_size(cursor_obj, 20, 20);  // 크기 설정
+    lv_obj_set_style_radius(cursor_obj, LV_RADIUS_CIRCLE, 0);  // 원형으로 설정
+    lv_obj_set_style_bg_color(cursor_obj, lv_color_hex(0xFF0000), 0);  // 빨간색
+    lv_obj_set_style_bg_opa(cursor_obj, LV_OPA_50, 0);  // 반투명
+    
+    // 초기에는 숨김
+    lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+}
 
 void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
@@ -80,6 +93,10 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
       /*Set the coordinates*/
       data->point.x = touch_last_x;
       data->point.y = touch_last_y;
+      lv_obj_clear_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_set_pos(cursor_obj, 
+                    touch_last_x - 10,  // 커서 중심이 터치 포인트에 오도록
+                    touch_last_y - 10); // 크기의 절
       ledcWrite(0,BRIGHT);
       lcdOntime=0;
       // Serial.print( "Data xx " );
@@ -136,34 +153,6 @@ void setMemoryDataToLCD(){
 }
 void displayToLcd(int packNumber,bool isSucess);
 extern uint isModuleExgist[8];
-extern lv_obj_t *ui_cellVoltage[15];
-extern lv_obj_t *ui_packVoltage[8];
-void initUI_Ptr(){
-    ui_cellVoltage[0] = ui_lblvoltage1;
-    ui_cellVoltage[1] = ui_lblvoltage2;
-    ui_cellVoltage[2] = ui_lblvoltage3;
-    ui_cellVoltage[3] = ui_lblvoltage4;
-    ui_cellVoltage[4] = ui_lblvoltage5;
-    ui_cellVoltage[5] = ui_lblvoltage6;
-    ui_cellVoltage[6] = ui_lblvoltage7;
-    ui_cellVoltage[7] = ui_lblvoltage8;
-    ui_cellVoltage[8] = ui_lblvoltage9;
-    ui_cellVoltage[9] = ui_lblvoltage10;
-    ui_cellVoltage[10] = ui_lblvoltage11;
-    ui_cellVoltage[11] = ui_lblvoltage12;
-    ui_cellVoltage[12] = ui_lblvoltage13;
-    ui_cellVoltage[13] = ui_lblvoltage14;
-    ui_cellVoltage[14] = ui_lblvoltage15;
-
-   ui_packVoltage[0]=ui_lblPack1;
-   ui_packVoltage[1]=ui_lblPack2;
-   ui_packVoltage[2]=ui_lblPack3;
-   ui_packVoltage[3]=ui_lblPack4;
-   ui_packVoltage[4]=ui_lblPack5;
-   ui_packVoltage[5]=ui_lblPack6;
-   ui_packVoltage[6]=ui_lblPack7;
-   ui_packVoltage[7]=ui_lblPack8;
-}
 
 void setup()
 {
@@ -276,7 +265,7 @@ void setup()
   
     Serial.println("Setup done");
   }
-  initUI_Ptr();
+  init_cursor();
   struct tm tm;
   tm.tm_year = 2023 - 1900;
   tm.tm_mon = 11;

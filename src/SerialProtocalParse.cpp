@@ -150,9 +150,35 @@ float avgVoltage =0.0;
 //lblOutputVoltage
 int ModuleVoltage[8]={0,0,0,0,0,0,0,0};
 
+void initUI_Ptr(){
+    ui_cellVoltage[0] = ui_lblvoltage1;
+    ui_cellVoltage[1] = ui_lblvoltage2;
+    ui_cellVoltage[2] = ui_lblvoltage3;
+    ui_cellVoltage[3] = ui_lblvoltage4;
+    ui_cellVoltage[4] = ui_lblvoltage5;
+    ui_cellVoltage[5] = ui_lblvoltage6;
+    ui_cellVoltage[6] = ui_lblvoltage7;
+    ui_cellVoltage[7] = ui_lblvoltage8;
+    ui_cellVoltage[8] = ui_lblvoltage9;
+    ui_cellVoltage[9] = ui_lblvoltage10;
+    ui_cellVoltage[10] = ui_lblvoltage11;
+    ui_cellVoltage[11] = ui_lblvoltage12;
+    ui_cellVoltage[12] = ui_lblvoltage13;
+    ui_cellVoltage[13] = ui_lblvoltage14;
+    ui_cellVoltage[14] = ui_lblvoltage15;
+
+   ui_packVoltage[0]=ui_lblPack1;
+   ui_packVoltage[1]=ui_lblPack2;
+   ui_packVoltage[2]=ui_lblPack3;
+   ui_packVoltage[3]=ui_lblPack4;
+   ui_packVoltage[4]=ui_lblPack5;
+   ui_packVoltage[5]=ui_lblPack6;
+   ui_packVoltage[6]=ui_lblPack7;
+   ui_packVoltage[7]=ui_lblPack8;
+}
 void displayToLcd(int packNumber,bool isSucess)
 {
-
+  initUI_Ptr();
   String HeaderText = ipAddress_struct.deviceName;
   int packCount=0;
   String strTemp;
