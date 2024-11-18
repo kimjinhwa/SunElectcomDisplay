@@ -136,6 +136,35 @@ void setMemoryDataToLCD(){
 }
 void displayToLcd(int packNumber,bool isSucess);
 extern uint isModuleExgist[8];
+extern lv_obj_t *ui_cellVoltage[15];
+extern lv_obj_t *ui_packVoltage[8];
+void initUI_Ptr(){
+    ui_cellVoltage[0] = ui_lblvoltage1;
+    ui_cellVoltage[1] = ui_lblvoltage2;
+    ui_cellVoltage[2] = ui_lblvoltage3;
+    ui_cellVoltage[3] = ui_lblvoltage4;
+    ui_cellVoltage[4] = ui_lblvoltage5;
+    ui_cellVoltage[5] = ui_lblvoltage6;
+    ui_cellVoltage[6] = ui_lblvoltage7;
+    ui_cellVoltage[7] = ui_lblvoltage8;
+    ui_cellVoltage[8] = ui_lblvoltage9;
+    ui_cellVoltage[9] = ui_lblvoltage10;
+    ui_cellVoltage[10] = ui_lblvoltage11;
+    ui_cellVoltage[11] = ui_lblvoltage12;
+    ui_cellVoltage[12] = ui_lblvoltage13;
+    ui_cellVoltage[13] = ui_lblvoltage14;
+    ui_cellVoltage[14] = ui_lblvoltage15;
+
+   ui_packVoltage[0]=ui_lblPack1;
+   ui_packVoltage[1]=ui_lblPack2;
+   ui_packVoltage[2]=ui_lblPack3;
+   ui_packVoltage[3]=ui_lblPack4;
+   ui_packVoltage[4]=ui_lblPack5;
+   ui_packVoltage[5]=ui_lblPack6;
+   ui_packVoltage[6]=ui_lblPack7;
+   ui_packVoltage[7]=ui_lblPack8;
+}
+
 void setup()
 {
   Serial.begin(BAUDRATEDEF);
@@ -247,6 +276,7 @@ void setup()
   
     Serial.println("Setup done");
   }
+  initUI_Ptr();
   struct tm tm;
   tm.tm_year = 2023 - 1900;
   tm.tm_mon = 11;

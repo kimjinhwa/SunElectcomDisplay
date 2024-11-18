@@ -142,8 +142,10 @@ lv_obj_t* ui_packVoltage[8] = {
 };
 lv_obj_t* ui_cellVoltage[15] = {
   ui_lblvoltage1, ui_lblvoltage2, ui_lblvoltage3, ui_lblvoltage4, ui_lblvoltage5, 
-  ui_lblvoltage1, ui_lblvoltage2, ui_lblvoltage3, ui_lblvoltage4, ui_lblvoltage5, 
+  ui_lblvoltage6, ui_lblvoltage7, ui_lblvoltage8, ui_lblvoltage9, ui_lblvoltage10, 
+  ui_lblvoltage11, ui_lblvoltage12, ui_lblvoltage13, ui_lblvoltage14, ui_lblvoltage15, 
 };
+
 float avgVoltage =0.0;
 //lblOutputVoltage
 int ModuleVoltage[8]={0,0,0,0,0,0,0,0};
@@ -221,55 +223,30 @@ void displayToLcd(int packNumber,bool isSucess)
   String tTemperature4(naradaClient.batInfo[packNumber].Tempreature[3] - 50);
 
   String cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[0] / 1000.0f);
-  cellVoltage += "\n(" + tTemperature1 + ")";
-  if(isSucess)lv_label_set_text(ui_lblvoltage1, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[1] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage2, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[2] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage3, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[3] / 1000.0f);
-  cellVoltage += "\n(" + tTemperature2 + ")";
-  if(isSucess)lv_label_set_text(ui_lblvoltage4, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[4] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage5, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[5] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage6, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[6] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage7, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[7] / 1000.0f);
-  cellVoltage += "\n(" + tTemperature3 + ")";
-  if(isSucess)lv_label_set_text(ui_lblvoltage8, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[8] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage9, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[9] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage10, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[10] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage11, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[11] / 1000.0f);
-  cellVoltage += "\n(" + tTemperature4 + ")";
-  if(isSucess)lv_label_set_text(ui_lblvoltage12, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[12] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage13, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[13] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage14, cellVoltage.c_str());
-  cellVoltage = "";
-  cellVoltage += String(naradaClient.batInfo[packNumber].voltage[14] / 1000.0f);
-  if(isSucess)lv_label_set_text(ui_lblvoltage15, cellVoltage.c_str());
 
+ for (int i = 0; i < 15; i++)
+  {
+    cellVoltage = "";
+    cellVoltage += String(naradaClient.batInfo[packNumber].voltage[i] / 1000.0f);
+    // 특정 셀에만 온도 표시
+    switch (i)
+    {
+    case 0: // 첫 번째 셀
+      cellVoltage += "\n(" + tTemperature1 + ")";
+      break;
+    case 3: // 4번째 셀
+      cellVoltage += "\n(" + tTemperature2 + ")";
+      break;
+    case 7: // 8번째 셀
+      cellVoltage += "\n(" + tTemperature3 + ")";
+      break;
+    case 11: // 12번째 셀
+      cellVoltage += "\n(" + tTemperature4 + ")";
+      break;
+    }
+    if (isSucess)
+      lv_label_set_text(ui_cellVoltage[i], cellVoltage.c_str());
+  }
   // if(isSucess)lv_label_set_text((lv_obj_t *)ui_packVoltage[packNumber], String( naradaClient.batInfo[packNumber].totalVoltage!=0 ? naradaClient.batInfo[packNumber].totalVoltage/100.0f:0).c_str());
   String tVoltage = "";
   tVoltage = "#";
@@ -279,34 +256,9 @@ void displayToLcd(int packNumber,bool isSucess)
     tVoltage += String(float(naradaClient.batInfo[packNumber].totalVoltage) / 100.0f);
   else
     tVoltage += 0;
-  switch (packNumber)
-  {
-  case 0:
-    lv_label_set_text(ui_lblPack1, tVoltage.c_str());
-    break;
-  case 1:
-    lv_label_set_text(ui_lblPack2, tVoltage.c_str());
-    break;
-  case 2:
-    lv_label_set_text(ui_lblPack3, tVoltage.c_str());
-    break;
-  case 3:
-    lv_label_set_text(ui_lblPack4, tVoltage.c_str());
-    break;
-  case 4:
-    lv_label_set_text(ui_lblPack5, tVoltage.c_str());
-    break;
-  case 5:
-    lv_label_set_text(ui_lblPack6, tVoltage.c_str());
-    break;
-  case 6:
-    lv_label_set_text(ui_lblPack7, tVoltage.c_str());
-    break;
-  case 7:
-    lv_label_set_text(ui_lblPack8, tVoltage.c_str());
-    break;
-  default:
-    break;
+  // 배열이 유효한 범위 내에 있는지 확인
+  if (packNumber >= 0 && packNumber < 8) {
+      lv_label_set_text(ui_packVoltage[packNumber], tVoltage.c_str());
   }
 };
 void printPackData(int packNumber){
