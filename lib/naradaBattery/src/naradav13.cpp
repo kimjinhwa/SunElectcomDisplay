@@ -122,14 +122,16 @@ int NaradaClient232::dataParse(const uint8_t *revData){
     int packNumber;
     packNumber = revData[1];
     revData = revData+4;
-    xSemaphoreTake(revDataMutex, portMAX_DELAY);
-    for(int i=0 ;i<11;i++){
-        dataParseExt(packNumber, revData);
-        revData = revData + revData[1]*2 +2;
+    
+    if (xSemaphoreTake(revDataMutex, portMAX_DELAY)) {
+        for(int i=0 ;i<11;i++){
+            dataParseExt(packNumber, revData);
+            revData = revData + revData[1]*2 +2;
+        }
+        xSemaphoreGive(revDataMutex);
     }
-    xSemaphoreGive(revDataMutex);
     return 0;
-};
+}
 int NaradaClient232::dataParseExt(int packNumber,const uint8_t *revData){
     uint8_t dataLen = revData[1];
     uint8_t command = revData[0];
@@ -201,21 +203,24 @@ Error NaradaClient232::readAnswerData(){
 
 void NaradaClient232::makeDataClear(int packNumber)
 {
-    batInfo[packNumber].voltageNumber = 0;
-    for (int j = 0; j < 15; j++)
-        batInfo[packNumber].voltage[j] = 0;
-    batInfo[packNumber].ampere = 0;
-    batInfo[packNumber].soc = 0;
-    batInfo[packNumber].Capacity = 0;
-    batInfo[packNumber].TempreatureNumber = 0;
-    for (int j = 0; j < 4; j++)
-        batInfo[packNumber].Tempreature[j] = 0;
-    for (int j = 0; j < 5; j++)
-        batInfo[packNumber].packStatus[j] = 0;
-    batInfo[packNumber].readCycleCount = 0;
-    batInfo[packNumber].voltageNumber = 0;
-    batInfo[packNumber].SOH = 0;
-    batInfo[packNumber].BMS_PROTECT_STATUS = 0;
+    if (xSemaphoreTake(revDataMutex, portMAX_DELAY)) {
+        batInfo[packNumber].voltageNumber = 0;
+        for (int j = 0; j < 15; j++)
+            batInfo[packNumber].voltage[j] = 0;
+        batInfo[packNumber].ampere = 0;
+        batInfo[packNumber].soc = 0;
+        batInfo[packNumber].Capacity = 0;
+        batInfo[packNumber].TempreatureNumber = 0;
+        for (int j = 0; j < 4; j++)
+            batInfo[packNumber].Tempreature[j] = 0;
+        for (int j = 0; j < 5; j++)
+            batInfo[packNumber].packStatus[j] = 0;
+        batInfo[packNumber].readCycleCount = 0;
+        batInfo[packNumber].voltageNumber = 0;
+        batInfo[packNumber].SOH = 0;
+        batInfo[packNumber].BMS_PROTECT_STATUS = 0;
+        xSemaphoreGive(revDataMutex);
+    }
 }
 void NaradaClient232::getPackData(int packNumber){
     readSerialCount =0;
