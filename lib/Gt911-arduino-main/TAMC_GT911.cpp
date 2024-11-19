@@ -123,13 +123,27 @@ void TAMC_GT911::writeByteData(uint16_t reg, uint8_t val) {
   Wire.write(val);
   Wire.endTransmission();
 }
-uint8_t TAMC_GT911::readByteData(uint16_t reg) {
+uint8_t TAMC_GT911::readByteData(uint16_t reg)
+{
   uint8_t x;
   Wire.beginTransmission(addr);
   Wire.write(highByte(reg));
   Wire.write(lowByte(reg));
   Wire.endTransmission();
-  Wire.requestFrom(addr, (uint8_t)1);
+  if (Wire.endTransmission() != 0)
+  {
+    log_e("GT911 I2C write failed");
+    esp_restart();
+    return -1; // 에러 상태 리턴
+  }
+  int received = Wire.requestFrom(addr, (uint8_t)1);
+  if (received == 0)
+  {
+    log_e("GT911 I2C read failed");
+    Wire.flush();
+    esp_restart();
+    return -1; // 에러 상태 리턴
+  }
   x = Wire.read();
   return x;
 }

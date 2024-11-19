@@ -10,12 +10,13 @@
 #include "wifiOTA.h"
 #include <esp_task_wdt.h>
 #include "naradav13.h"
+#include <esp_wifi.h>
 //#include "lv_i18n/lv_i18n.h" 
-
+#include <Wire.h>
 #define GFX_BL DF_GFX_BL // default backlight pin, you may replace DF_GFX_BL to actual backlight pin
 #define TFT_BL 2
 #define BRIGHT  155 
-#define WDT_TIMEOUT 120 
+#define WDT_TIMEOUT 5 
 
 static uint32_t screenWidth;
 static uint32_t screenHeight;
@@ -81,9 +82,12 @@ void init_cursor() {
     // 초기에는 숨김
     lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
 }
-
+static unsigned long last_touch_time = 0;  // 마지막 터치 시간을 저장할 변수
+#define TOUCH_TIMEOUT (3 * 60 * 1000)    // 10분을 밀리초로 변환
 void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
+  unsigned long current_time = millis();
+  
   if (touch_has_signal())
   {
     if (touch_touched())
@@ -107,6 +111,14 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     else if (touch_released())
     {
       data->state = LV_INDEV_STATE_REL;
+      // 10분 이상 터치가 없었는지 확인
+      if ((current_time - last_touch_time) > TOUCH_TIMEOUT)
+      {
+        last_touch_time = current_time; // 타이머 리셋
+        lv_obj_clear_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+        touch_init();
+        Serial.println("touch_init ok ");
+      }
     }
   }
   else
@@ -156,9 +168,20 @@ extern uint isModuleExgist[8];
 
 void setup()
 {
+  // WiFi 끄기
+  esp_wifi_deinit();
+  // 또는
+  esp_wifi_stop();
+
+  // WiFi 모듈의 전원 자체를 끄기
+  esp_wifi_set_mode(WIFI_MODE_NULL);
+
+  // 추가로 전력 소비를 더 줄이려면
+  btStop(); // Bluetooth도 끄기`
   Serial.begin(BAUDRATEDEF);
-  Serial1.begin(BAUDRATEDEF,134217756U,18,17);
+  Serial1.begin(BAUDRATEDEF, 134217756U, 18, 17);
   EEPROM.begin(120);
+  Wire.setClock(400000);
   if (EEPROM.read(0) != 0x55)
   {
     ipAddress_struct.IPADDRESS = (uint32_t)IPAddress(192, 168, 0, 57);
@@ -177,9 +200,9 @@ void setup()
     ipAddress_struct.HighImp = 80000;
     ipAddress_struct.HighTemp = 70;
     ipAddress_struct.alarmSetStatus = 0;
-    strncpy(ipAddress_struct.deviceName,"BAT RACK1",9);
+    strncpy(ipAddress_struct.deviceName, "BAT RACK1", 9);
 
-    EEPROM.writeByte(0,0x55);
+    EEPROM.writeByte(0, 0x55);
     EEPROM.commit();
     EEPROM.writeBytes(1, (const byte *)&ipAddress_struct, sizeof(nvsSystemSet));
     EEPROM.commit();
@@ -190,7 +213,7 @@ void setup()
   ipAddress_struct.HighImp = 0;
   ipAddress_struct.HighTemp = 0;
   EEPROM.readBytes(1, (byte *)&ipAddress_struct, sizeof(ipAddress_struct));
-  Serial.printf("\ninit data \n%d %d %d %d",ipAddress_struct.HighVoltage,ipAddress_struct.LowVoltage,ipAddress_struct.HighTemp,ipAddress_struct.HighImp);
+  Serial.printf("\ninit data \n%d %d %d %d", ipAddress_struct.HighVoltage, ipAddress_struct.LowVoltage, ipAddress_struct.HighTemp, ipAddress_struct.HighImp);
   // while (!Serial);
   Serial.println("LVGL Benchmark Demo");
 
@@ -216,7 +239,7 @@ void setup()
   delay(500);
   lv_init();
 
-  //led = lv_led_create(lv_scr_act());
+  // led = lv_led_create(lv_scr_act());
 
   // Init touch device
   pinMode(TOUCH_GT911_RST, OUTPUT);
@@ -259,10 +282,10 @@ void setup()
     ui_init();
 
     lv_label_set_text(ui_DateLabel, "");
-    lv_label_set_text(ui_DateLabel1,"" );
+    lv_label_set_text(ui_DateLabel1, "");
     lv_label_set_text(ui_TimeLabel, "");
     lv_label_set_text(ui_TimeLabel1, "");
-  
+
     Serial.println("Setup done");
   }
   init_cursor();
@@ -278,16 +301,16 @@ void setup()
   tv.tv_usec = 0;
   settimeofday(&tv, NULL);
 #ifdef USEWIFI
-  wifiOTAsetup() ;
+  wifiOTAsetup();
 #endif
-  pinMode(13,OUTPUT);
-  pinMode(12,OUTPUT);
+  pinMode(13, OUTPUT);
+  pinMode(12, OUTPUT);
   EEPROM.readBytes(1, (byte *)&ipAddress_struct, sizeof(ipAddress_struct));
   setMemoryDataToLCD();
   esp_task_wdt_init(WDT_TIMEOUT, true);
   esp_task_wdt_add(NULL);
   naradaClient.initBatInfo();
-  //for(int i=0;i<8;i++)displayToLcd(i,true);
+  // for(int i=0;i<8;i++)displayToLcd(i,true);
 };
 static int interval = 1000;
 static unsigned long previousmills = 0;
@@ -299,7 +322,7 @@ unsigned long incTime=1;
 void loop()
 {
   void *parameters;
-  wifiOtaloop();
+  //wifiOtaloop();
   now = millis();
   esp_task_wdt_reset();
   serialProtocalparse();
@@ -315,7 +338,10 @@ void loop()
   }
   //if ((incTime % 10) == 0) // 100*10 = 1S
   if(lcdOntime >= LED_OFF_TIME) //lv_led_off(led);
-      ledcWrite(0,0);
+  {
+      //ledcWrite(0,0);
+      lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+  }
   lv_timer_handler(); /* let the GUI do its work */
   vTaskDelay(50);
 }

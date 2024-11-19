@@ -322,7 +322,7 @@ void serialProtocalparse()
     if (naradaClient.readAnswerData(&revData[0]) == 0)
     {
       Serial.printf("\nData Received OK Pack : %d", packNumber);
-      printPackData(packNumber);
+      //printPackData(packNumber);
       String msg("STATUS:Module On #"); 
       msg += packNumber+1;
       lv_label_set_text(ui_CompanyLabel1, msg.c_str());
