@@ -87,9 +87,18 @@ static unsigned long last_touch_time = 0;  // 마지막 터치 시간을 저장�
 void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
   unsigned long current_time = millis();
-  
+  // 10분 이상 터치가 없었는지 확인
+  if ((current_time - last_touch_time) > TOUCH_TIMEOUT)
+  {
+    last_touch_time = current_time; // 타이머 리셋
+    lv_obj_clear_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+    touch_init();
+    Serial.println("\ntouch_init ok ");
+  }
+
   if (touch_has_signal())
   {
+    last_touch_time = current_time; // 타이머 리셋
     if (touch_touched())
     {
       data->state = LV_INDEV_STATE_PR;
@@ -111,14 +120,6 @@ void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     else if (touch_released())
     {
       data->state = LV_INDEV_STATE_REL;
-      // 10분 이상 터치가 없었는지 확인
-      if ((current_time - last_touch_time) > TOUCH_TIMEOUT)
-      {
-        last_touch_time = current_time; // 타이머 리셋
-        lv_obj_clear_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
-        touch_init();
-        Serial.println("touch_init ok ");
-      }
     }
   }
   else
